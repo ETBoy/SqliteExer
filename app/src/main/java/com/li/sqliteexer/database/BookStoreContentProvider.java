@@ -5,6 +5,7 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.UriMatcher;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.support.annotation.Nullable;
 
@@ -36,7 +37,37 @@ public class BookStoreContentProvider extends ContentProvider {
     @Override
     public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
                         String sortOrder) {
-        return null;
+        SQLiteDatabase db=mDbHelper.getReadableDatabase();
+        Cursor cursor=null;
+        switch (sURI_MATCHER.match(uri)){
+            case BOOK_DIR:
+                cursor=db.query(BookStoreContract.Book.TABLE_NAME,projection,selection,selectionArgs,null,null,sortOrder);
+
+                break;
+            case BOOK_ITEM:
+                String bookId=uri.getPathSegments().get(1);
+                cursor=db.query(BookStoreContract.Book.TABLE_NAME,projection,"_id=?",new String[]{bookId},null,null,sortOrder);
+                break;
+            default:
+                throw new UnsupportedOperationException("unknown uri"+uri);
+        }
+        return cursor;
+    }
+
+    @Override
+    public Uri insert(Uri uri,ContentValues values){
+        SQLiteDatabase db=mDbHelper.getWritableDatabase();
+        Uri uriReturn=null;
+        switch (sURI_MATCHER.match(uri)){
+            case  BOOK_DIR:
+                break;
+            case BOOK_ITEM:
+                long newBookId=db.insert(BookStoreContract.Book.TABLE_NAME,null,values);
+                uriReturn=Uri.parse("content://"+BookStoreContract.AUTHORITY+"/book/"+newBookId);
+                break;
+            default:
+        }
+        return  uriReturn;
     }
 
     @Nullable
@@ -56,19 +87,37 @@ public class BookStoreContentProvider extends ContentProvider {
         }
     }
 
-    @Nullable
-    @Override
-    public Uri insert(Uri uri, ContentValues values) {
-        return null;
-    }
 
     @Override
     public int delete(Uri uri, String selection, String[] selectionArgs) {
-        return 0;
+        SQLiteDatabase db=mDbHelper.getWritableDatabase();
+        int count=0;
+        switch (sURI_MATCHER.match(uri)){
+            case BOOK_DIR:
+                count=db.delete(BookStoreContract.Book.TABLE_NAME,selection,selectionArgs);
+                break;
+            case BOOK_ITEM:
+                String bookId=uri.getPathSegments().get(1);
+                count=db.delete(BookStoreContract.Book.TABLE_NAME,"_id=?",new String[]{bookId});
+                break;
+        }
+
+        return count;
     }
 
     @Override
     public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
-        return 0;
+        SQLiteDatabase db=mDbHelper.getWritableDatabase();
+        int count=0;
+        switch (sURI_MATCHER.match(uri)){
+            case BOOK_DIR:
+                count=db.update(BookStoreContract.Book.TABLE_NAME,values,selection,selectionArgs);
+                break;
+            case BOOK_ITEM:
+                String bookId=uri.getPathSegments().get(1);
+                count=db.update(BookStoreContract.Book.TABLE_NAME,values,"_id=?",new String[]{bookId});
+                break;
+        }
+        return count;
     }
 }
